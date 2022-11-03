@@ -2,7 +2,7 @@
 #include <iostream>
 #include <vector>
 
-class sha_256
+class Sha256
 {
     public:
         static constexpr uint32_t CONSTANTS[64] = {
@@ -36,6 +36,7 @@ class sha_256
         auto s0_op(uint32_t nb);
         void hash(std::vector<unsigned char> vec);
         std::vector<unsigned char> preprocessing(char *input);
+        std::string exec(char *input);
 };
 
 
