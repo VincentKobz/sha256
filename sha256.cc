@@ -63,80 +63,75 @@ std::vector<unsigned char> sha_256::preprocessing(char *input)
 
 void sha_256::hash(std::vector<unsigned char> vec)
 {
-    std::vector<uint32_t> new_vec;
-    for (auto i = 0; i < 64; i += 4)
+    for (auto j = 0; j < vec.size(); j += 64)
     {
-        uint32_t new_data = (vec[i] << 24) | (vec[i + 1] << 16) | (vec[i + 2] << 8) | vec[i + 3];
-        new_vec.push_back(new_data);
+        std::vector<uint32_t> new_vec;
+        for (auto i = j; i < j + 64; i += 4)
+        {
+            uint32_t new_data = (vec[i] << 24) | (vec[i + 1] << 16) | (vec[i + 2] << 8) | vec[i + 3];
+            new_vec.push_back(new_data);
+        }
+
+        for (auto i = 16; i < 64; i++)
+        {
+            auto s0 = rotate_right(new_vec[i - 15], 7) ^ rotate_right(new_vec[i - 15], 18) ^ shift_right(new_vec[i - 15], 3);
+            auto s1 = rotate_right(new_vec[i - 2], 17) ^ rotate_right(new_vec[i - 2], 19) ^ shift_right(new_vec[i - 2], 10);
+            auto value = s0 + s1 + new_vec[i - 16] + new_vec[i - 7];
+
+            new_vec.push_back(value);
+        }
+
+        auto a = SQUARE_ROOT[0];
+        auto b = SQUARE_ROOT[1];
+        auto c = SQUARE_ROOT[2];
+        auto d = SQUARE_ROOT[3];
+        auto e = SQUARE_ROOT[4];
+        auto f = SQUARE_ROOT[5];
+        auto g = SQUARE_ROOT[6];
+        auto h = SQUARE_ROOT[7];
+
+        for (auto i = 0; i < 64; i++)
+        {
+            auto s1 = s1_op(e);
+            auto s0 = s0_op(a);
+            auto maj = maj_op(a, b, c);
+            auto ch = ch_op(e, f, g);
+
+            auto tmp1 = s1 + ch + h + new_vec[i] + CONSTANTS[i];
+            auto tmp2 = s0 + maj;
+
+            h = g;
+            g = f;
+            f = e;
+            e = d + tmp1;
+            d = c;
+            c = b;
+            b = a;
+            a = tmp1 + tmp2;
+        }
+
+        SQUARE_ROOT[0] += a;
+        SQUARE_ROOT[1] += b;
+        SQUARE_ROOT[2] += c;
+        SQUARE_ROOT[3] += d;
+        SQUARE_ROOT[4] += e;
+        SQUARE_ROOT[5] += f;
+        SQUARE_ROOT[6] += g;
+        SQUARE_ROOT[7] += h;
     }
-
-    for (auto i = 16; i < 64; i++)
-    {
-        auto s0 = rotate_right(new_vec[i - 15], 7) ^ rotate_right(new_vec[i - 15], 18) ^ shift_right(new_vec[i - 15], 3);
-        auto s1 = rotate_right(new_vec[i - 2], 17) ^ rotate_right(new_vec[i - 2], 19) ^ shift_right(new_vec[i - 2], 10);
-        auto value = s0 + s1 + new_vec[i - 16] + new_vec[i - 7];
-
-        new_vec.push_back(value);
-    }
-
-    auto a = SQUARE_ROOT[0];
-    auto b = SQUARE_ROOT[1];
-    auto c = SQUARE_ROOT[2];
-    auto d = SQUARE_ROOT[3];
-    auto e = SQUARE_ROOT[4];
-    auto f = SQUARE_ROOT[5];
-    auto g = SQUARE_ROOT[6];
-    auto h = SQUARE_ROOT[7];
-
-    for (auto i = 0; i < 64; i++)
-    {
-        auto s1 = s1_op(e);
-        auto s0 = s0_op(a);
-        auto maj = maj_op(a, b, c);
-        auto ch = ch_op(e, f, g);
-
-        auto tmp1 = s1 + ch + h + new_vec[i] + CONSTANTS[i];
-        auto tmp2 = s0 + maj;
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + tmp1;
-        d = c;
-        c = b;
-        b = a;
-        a = tmp1 + tmp2;
-    }
-
-    SQUARE_ROOT[0] += a;
-    SQUARE_ROOT[1] += b;
-    SQUARE_ROOT[2] += c;
-    SQUARE_ROOT[3] += d;
-    SQUARE_ROOT[4] += e;
-    SQUARE_ROOT[5] += f;
-    SQUARE_ROOT[6] += g;
-    SQUARE_ROOT[7] += h;
 }
 
-int main(int argc, char **argv)
+std::string sha_256::exec(char *input)
 {
-    if (argc != 2)
-    {
-        std::cout << "Usage: ./sha256 <string>\n";
-        return 1;
-    }
-
-    sha_256 sha;
-    auto data = sha.preprocessing(argv[1]);
-    sha.hash(data);
+    auto data = preprocessing(input);
+    hash(data);
 
     std::ostringstream oss;
     for (int i = 0; i < 8; i++)
     {
-        oss << std::hex << std::setfill('0') << std::setw(2) << sha.SQUARE_ROOT[i];
+        oss << std::hex << std::setfill('0') << std::setw(2) << SQUARE_ROOT[i];
     }
 
-    std::cout << oss.str() << std::endl;
-
-    return 0;
+    return oss.str();
 }
+
